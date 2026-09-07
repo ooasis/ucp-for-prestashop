@@ -1,8 +1,19 @@
 <?php
+/**
+ * UCP/ACP Agent for PrestaShop
+ *
+ * @author    ooasis
+ * @copyright 2026 ooasis
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
 
 declare(strict_types=1);
 
 namespace UcpAgent;
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 /**
  * Guards outbound requests to attacker-influenced URLs (platform profile

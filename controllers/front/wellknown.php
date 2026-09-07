@@ -1,4 +1,11 @@
 <?php
+/**
+ * UCP/ACP Agent for PrestaShop
+ *
+ * @author    ooasis
+ * @copyright 2026 ooasis
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
 /** GET /.well-known/ucp — merchant UCP business profile. */
 if (!defined('_PS_VERSION_')) {
     exit;

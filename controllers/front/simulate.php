@@ -1,5 +1,12 @@
 <?php
 /**
+ * UCP/ACP Agent for PrestaShop
+ *
+ * @author    ooasis
+ * @copyright 2026 ooasis
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+/**
  * POST /testing/simulate-shipping/{id} — conformance test hook,
  * gated by the Simulation-Secret header.
  */

@@ -1,5 +1,12 @@
 <?php
 /**
+ * UCP/ACP Agent for PrestaShop
+ *
+ * @author    ooasis
+ * @copyright 2026 ooasis
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+/**
  * UCP/ACP Agent for PrestaShop — agentic checkout via the Universal Commerce
  * Protocol. Protocol core ported from the conformance-proven Magento module:
  * RFC 9421 signatures, profile + JWKs, checkout-session state machine,
@@ -43,8 +50,9 @@ class Ucpagent extends PaymentModule
 
         parent::__construct();
 
-        $this->displayName = 'UCP/ACP Agent';
-        $this->description = 'Agentic checkout via UCP: /.well-known/ucp profile, signed requests (RFC 9421), checkout sessions.';
+        $this->displayName = $this->l('UCP/ACP Agent');
+        $this->description = $this->l('Agentic checkout via UCP: /.well-known/ucp profile, signed requests (RFC 9421), checkout sessions.');
+        $this->confirmUninstall = $this->l('Uninstall UCP Agent? Checkout sessions, signing keys and UCP order records will be deleted.');
     }
 
     public function install()

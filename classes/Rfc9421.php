@@ -1,5 +1,12 @@
 <?php
 /**
+ * UCP/ACP Agent for PrestaShop
+ *
+ * @author    ooasis
+ * @copyright 2026 ooasis
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+/**
  * RFC 9421 HTTP Message Signatures for UCP.
  *
  * Plain PHP 8.1+, no dependencies beyond ext-openssl and ext-sodium.
@@ -18,6 +25,10 @@
 declare(strict_types=1);
 
 namespace UcpAgent;
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 class Rfc9421
 {
