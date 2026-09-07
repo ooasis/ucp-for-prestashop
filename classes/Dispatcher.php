@@ -25,13 +25,28 @@ if (!defined('_PS_VERSION_')) {
  */
 class Dispatcher
 {
-    public function __construct(
-        private readonly Config $config,
-        private readonly Profile $profile,
-        private readonly Idempotency $idempotency,
-        private readonly Checkout $checkout,
-        private readonly Orders $orders,
-    ) {
+    /** @var Config */
+    private $config;
+
+    /** @var Profile */
+    private $profile;
+
+    /** @var Idempotency */
+    private $idempotency;
+
+    /** @var Checkout */
+    private $checkout;
+
+    /** @var Orders */
+    private $orders;
+
+    public function __construct(Config $config, Profile $profile, Idempotency $idempotency, Checkout $checkout, Orders $orders)
+    {
+        $this->config = $config;
+        $this->profile = $profile;
+        $this->idempotency = $idempotency;
+        $this->checkout = $checkout;
+        $this->orders = $orders;
     }
 
     /** Wire the default dependency graph. */
@@ -50,7 +65,7 @@ class Dispatcher
     {
         $headers = [];
         foreach ($_SERVER as $name => $value) {
-            if (str_starts_with($name, 'HTTP_')) {
+            if (strpos($name, 'HTTP_') === 0) {
                 $headers[strtolower(str_replace('_', '-', substr($name, 5)))] = $value;
             }
         }
@@ -101,7 +116,7 @@ class Dispatcher
         $ucpAgent = (string) ($req['headers']['ucp-agent'] ?? '');
         $this->checkVersion($ucpAgent);
         $this->verifySignatureIfPresent($req);
-        $mutating = !str_starts_with($op, 'get_');
+        $mutating = strpos($op, 'get_') !== 0;
         $successStatus = $op === 'create_checkout' ? 201 : 200;
 
         if ($mutating && $op !== 'update_order') {
@@ -136,15 +151,23 @@ class Dispatcher
             $json = [];
         }
         $agent = (string) ($req['headers']['ucp-agent'] ?? '');
-        return match ($op) {
-            'create_checkout'   => $this->checkout->create($this->requireItems($json), $agent),
-            'get_checkout'      => $this->checkout->load($id),
-            'update_checkout'   => $this->checkout->update($id, $json, $agent),
-            'complete_checkout' => $this->checkout->complete($id, $this->requirePayment($json)),
-            'cancel_checkout'   => $this->checkout->cancel($id),
-            'get_order'         => $this->orders->load($id),
-            'update_order'      => $this->orders->replace($id, $json),
-        };
+        switch ($op) {
+            case 'create_checkout':
+                return $this->checkout->create($this->requireItems($json), $agent);
+            case 'get_checkout':
+                return $this->checkout->load($id);
+            case 'update_checkout':
+                return $this->checkout->update($id, $json, $agent);
+            case 'complete_checkout':
+                return $this->checkout->complete($id, $this->requirePayment($json));
+            case 'cancel_checkout':
+                return $this->checkout->cancel($id);
+            case 'get_order':
+                return $this->orders->load($id);
+            case 'update_order':
+                return $this->orders->replace($id, $json);
+        }
+        throw new \LogicException('Unknown op ' . $op);
     }
 
     /** Require line_items or cart_id in a create_checkout body. */

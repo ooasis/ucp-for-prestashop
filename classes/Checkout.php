@@ -39,12 +39,24 @@ use Validate;
  */
 class Checkout
 {
-    public function __construct(
-        private readonly SessionStore $sessions,
-        private readonly Profile $profile,
-        private readonly Payments $payments,
-        private readonly Orders $orders,
-    ) {
+    /** @var SessionStore */
+    private $sessions;
+
+    /** @var Profile */
+    private $profile;
+
+    /** @var Payments */
+    private $payments;
+
+    /** @var Orders */
+    private $orders;
+
+    public function __construct(SessionStore $sessions, Profile $profile, Payments $payments, Orders $orders)
+    {
+        $this->sessions = $sessions;
+        $this->profile = $profile;
+        $this->payments = $payments;
+        $this->orders = $orders;
     }
 
     // -- storage ------------------------------------------------------------
@@ -76,11 +88,13 @@ class Checkout
             $doc['buyer'] = $body['buyer'];
         }
         $doc['line_items'] = array_map(
-            fn($li) => [
-                'id'       => self::uuid(),
-                'item'     => ['id' => $li['item']['id'] ?? ''],
-                'quantity' => (int) ($li['quantity'] ?? 1),
-            ],
+            function ($li) {
+                return [
+                    'id'       => self::uuid(),
+                    'item'     => ['id' => $li['item']['id'] ?? ''],
+                    'quantity' => (int) ($li['quantity'] ?? 1),
+                ];
+            },
             array_values($body['line_items'] ?? [])
         );
         if (!empty($body['fulfillment']['methods'])) {
@@ -106,11 +120,13 @@ class Checkout
         $this->assertModifiable($doc);
         if (isset($body['line_items'])) {
             $doc['line_items'] = array_map(
-                fn($li) => [
-                    'id'       => $li['id'] ?? self::uuid(),
-                    'item'     => ['id' => $li['item']['id'] ?? ''],
-                    'quantity' => (int) ($li['quantity'] ?? 1),
-                ],
+                function ($li) {
+                    return [
+                        'id'       => $li['id'] ?? self::uuid(),
+                        'item'     => ['id' => $li['item']['id'] ?? ''],
+                        'quantity' => (int) ($li['quantity'] ?? 1),
+                    ];
+                },
                 array_values($body['line_items'])
             );
         }
@@ -395,7 +411,9 @@ class Checkout
         }
 
         $totals[] = ['type' => 'total', 'amount' => array_sum(array_map(
-            fn($t) => $t['type'] === 'total' ? 0 : $t['amount'],
+            function ($t) {
+                return $t['type'] === 'total' ? 0 : $t['amount'];
+            },
             $totals
         ))];
         $doc['totals'] = $totals;
@@ -477,11 +495,13 @@ class Checkout
         }
         $method['selected_destination_id'] = $m['selected_destination_id'] ?? null;
         if (isset($m['groups'])) {
-            $method['groups'] = array_map(fn($g) => [
-                'id'                 => $g['id'] ?? ('group_' . self::uuid()),
-                'line_item_ids'      => array_values($g['line_item_ids'] ?? []),
-                'selected_option_id' => $g['selected_option_id'] ?? null,
-            ], array_values($m['groups']));
+            $method['groups'] = array_map(function ($g) {
+                return [
+                    'id'                 => $g['id'] ?? ('group_' . self::uuid()),
+                    'line_item_ids'      => array_values($g['line_item_ids'] ?? []),
+                    'selected_option_id' => $g['selected_option_id'] ?? null,
+                ];
+            }, array_values($m['groups']));
         }
         return $method;
     }
@@ -560,14 +580,16 @@ class Checkout
             return;
         }
         $psOptions = ($cart->id && $idAddress) ? $this->deliveryOptions($cart, $idAddress) : [];
-        $options = array_map(fn($o) => [
-            'id'     => $o['id'],
-            'title'  => $o['title'],
-            'totals' => [
-                ['type' => 'subtotal', 'amount' => $o['amount']],
-                ['type' => 'total', 'amount' => $o['amount']],
-            ],
-        ], $psOptions);
+        $options = array_map(function ($o) {
+            return [
+                'id'     => $o['id'],
+                'title'  => $o['title'],
+                'totals' => [
+                    ['type' => 'subtotal', 'amount' => $o['amount']],
+                    ['type' => 'total', 'amount' => $o['amount']],
+                ],
+            ];
+        }, $psOptions);
 
         if (empty($method['groups'])) {
             $method['groups'] = [[
@@ -615,7 +637,9 @@ class Checkout
                 'key'    => (string) $key,
             ];
         }
-        usort($options, fn($a, $b) => $a['amount'] <=> $b['amount']);
+        usort($options, function ($a, $b) {
+            return $a['amount'] <=> $b['amount'];
+        });
         return $options;
     }
 

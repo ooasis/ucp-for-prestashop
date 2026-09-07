@@ -35,13 +35,22 @@ class Profile
     ];
 
     /** @var array<string, ?array> per-request platform profile cache */
-    private static array $profileCache = [];
+    private static $profileCache = [];
 
-    public function __construct(
-        private readonly Config $config,
-        private readonly Payments $payments,
-        private readonly SsrfGuard $ssrfGuard,
-    ) {
+    /** @var Config */
+    private $config;
+
+    /** @var Payments */
+    private $payments;
+
+    /** @var SsrfGuard */
+    private $ssrfGuard;
+
+    public function __construct(Config $config, Payments $payments, SsrfGuard $ssrfGuard)
+    {
+        $this->config = $config;
+        $this->payments = $payments;
+        $this->ssrfGuard = $ssrfGuard;
     }
 
     /** Generate + persist an ES256 signing key pair (JWK) on first use. */

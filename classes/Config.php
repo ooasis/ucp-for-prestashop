@@ -26,11 +26,15 @@ use PhpEncryption;
  */
 class Config
 {
-    private ?PhpEncryption $encryptor = null;
+    /** @var PhpEncryption|null */
+    private $encryptor;
 
     private function encryptor(): PhpEncryption
     {
-        return $this->encryptor ??= new PhpEncryption(_NEW_COOKIE_KEY_);
+        if ($this->encryptor === null) {
+            $this->encryptor = new PhpEncryption(_NEW_COOKIE_KEY_);
+        }
+        return $this->encryptor;
     }
 
     public function encrypt(string $plain): string
@@ -121,7 +125,9 @@ class Config
         $rows = Db::getInstance()->executeS(
             'SELECT jwk FROM `' . _DB_PREFIX_ . "ucpagent_key` WHERE status = 'retired' ORDER BY id_key ASC"
         ) ?: [];
-        return array_map(fn($r) => json_decode((string) $r['jwk'], true), $rows);
+        return array_map(function ($r) {
+            return json_decode((string) $r['jwk'], true);
+        }, $rows);
     }
 
     /** Persist the retired JWK list (replaces the previous list). */

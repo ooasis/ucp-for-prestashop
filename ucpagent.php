@@ -248,15 +248,17 @@ class Ucpagent extends PaymentModule
     private function renderForm()
     {
         $config = new UcpAgent\Config();
-        $switch = fn($label) => [
-            'values' => [
-                ['id' => 'on', 'value' => 1, 'label' => $this->l('Yes')],
-                ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
-            ],
-            'type' => 'switch',
-            'label' => $label,
-            'is_bool' => true,
-        ];
+        $switch = function ($label) {
+            return [
+                'values' => [
+                    ['id' => 'on', 'value' => 1, 'label' => $this->l('Yes')],
+                    ['id' => 'off', 'value' => 0, 'label' => $this->l('No')],
+                ],
+                'type' => 'switch',
+                'label' => $label,
+                'is_bool' => true,
+            ];
+        };
         $form = [[
             'form' => [
                 'legend' => ['title' => $this->l('UCP Agent'), 'icon' => 'icon-cogs'],

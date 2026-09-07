@@ -30,9 +30,12 @@ use Context;
  */
 class Payments
 {
-    public function __construct(
-        private readonly Config $config,
-    ) {
+    /** @var Config */
+    private $config;
+
+    public function __construct(Config $config)
+    {
+        $this->config = $config;
     }
 
     /** Charge an instrument. Returns a PSP transaction id, or null (mock). Throws UcpError. */
@@ -65,16 +68,16 @@ class Payments
         if (($cred['type'] ?? '') === 'card') {
             return; // mock: any raw card succeeds
         }
-        match ($cred['token'] ?? '') {
-            'success_token' => null,
-            'fail_token'    => throw new UcpError(
-                402,
-                'INSUFFICIENT_FUNDS',
-                'Payment Failed: Insufficient Funds (Mock)'
-            ),
-            'fraud_token'   => throw new UcpError(403, 'FRAUD_DETECTED', 'Payment Failed: Fraud Detected (Mock)'),
-            default         => throw new UcpError(402, 'UNKNOWN_TOKEN', 'Payment Failed: Unknown Token (Mock)'),
-        };
+        switch ($cred['token'] ?? '') {
+            case 'success_token':
+                return;
+            case 'fail_token':
+                throw new UcpError(402, 'INSUFFICIENT_FUNDS', 'Payment Failed: Insufficient Funds (Mock)');
+            case 'fraud_token':
+                throw new UcpError(403, 'FRAUD_DETECTED', 'Payment Failed: Fraud Detected (Mock)');
+            default:
+                throw new UcpError(402, 'UNKNOWN_TOKEN', 'Payment Failed: Unknown Token (Mock)');
+        }
     }
 
     /** GPay tokenizationData.token for gateway=stripe is a JSON Stripe Token object (or a bare tok_). */

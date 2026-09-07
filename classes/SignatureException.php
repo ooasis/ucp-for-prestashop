@@ -19,8 +19,12 @@ class SignatureException extends \RuntimeException
 {
     // Reasons mirror the spec's error registry: signature_missing, signature_invalid,
     // key_not_found, digest_mismatch, algorithm_unsupported, coverage_insufficient.
-    public function __construct(public readonly string $reason, string $detail = '')
+    /** @var string */
+    public $reason;
+
+    public function __construct(string $reason, string $detail = '')
     {
+        $this->reason = $reason;
         parent::__construct($detail === '' ? $reason : "$reason: $detail");
     }
 }

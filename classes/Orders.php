@@ -27,12 +27,24 @@ use Db;
  */
 class Orders
 {
-    public function __construct(
-        private readonly Config $config,
-        private readonly Profile $profile,
-        private readonly SessionStore $sessions,
-        private readonly SsrfGuard $ssrfGuard,
-    ) {
+    /** @var Config */
+    private $config;
+
+    /** @var Profile */
+    private $profile;
+
+    /** @var SessionStore */
+    private $sessions;
+
+    /** @var SsrfGuard */
+    private $ssrfGuard;
+
+    public function __construct(Config $config, Profile $profile, SessionStore $sessions, SsrfGuard $ssrfGuard)
+    {
+        $this->config = $config;
+        $this->profile = $profile;
+        $this->sessions = $sessions;
+        $this->ssrfGuard = $ssrfGuard;
     }
 
     /** Wire the default dependency graph (for module hooks and controllers). */
@@ -52,13 +64,15 @@ class Orders
     /** Build the UCP order entity from a completed checkout doc. */
     public function buildEntity(array $doc, string $orderUuid): array
     {
-        $lineItems = array_map(fn($li) => [
-            'id'       => $li['id'],
-            'item'     => $li['item'],
-            'quantity' => ['total' => $li['quantity'], 'fulfilled' => 0],
-            'totals'   => $li['totals'],
-            'status'   => 'processing',
-        ], $doc['line_items']);
+        $lineItems = array_map(function ($li) {
+            return [
+                'id'       => $li['id'],
+                'item'     => $li['item'],
+                'quantity' => ['total' => $li['quantity'], 'fulfilled' => 0],
+                'totals'   => $li['totals'],
+                'status'   => 'processing',
+            ];
+        }, $doc['line_items']);
 
         $expectations = [];
         foreach ($doc['fulfillment']['methods'] ?? [] as $method) {
@@ -82,14 +96,18 @@ class Orders
                 // falling back to all items (group ids may reference client-side ids).
                 $items = array_values(array_filter(
                     $doc['line_items'],
-                    fn($li) => in_array($li['id'], $group['line_item_ids'] ?? [], true)
+                    function ($li) use ($group) {
+                        return in_array($li['id'], $group['line_item_ids'] ?? [], true);
+                    }
                 ));
                 if (!$items) {
                     $items = $doc['line_items'];
                 }
                 $exp = [
                     'id'          => 'exp_' . Checkout::uuid(),
-                    'line_items'  => array_map(fn($li) => ['id' => $li['id'], 'quantity' => $li['quantity']], $items),
+                    'line_items'  => array_map(function ($li) {
+                        return ['id' => $li['id'], 'quantity' => $li['quantity']];
+                    }, $items),
                     'method_type' => $method['type'] ?? 'shipping',
                     'description' => $title,
                 ];
@@ -174,7 +192,7 @@ class Orders
             }
         }
         if (isset($e['adjustments'])) {
-            if (!is_array($e['adjustments']) || ($e['adjustments'] !== [] && !array_is_list($e['adjustments']))) {
+            if (!is_array($e['adjustments']) || ($e['adjustments'] !== [] && array_keys($e['adjustments']) !== range(0, count($e['adjustments']) - 1))) {
                 throw new UcpError(422, 'INVALID_REQUEST', 'adjustments must be a list');
             }
             foreach ($e['adjustments'] as $adj) {
@@ -221,7 +239,9 @@ class Orders
             'type'        => 'shipped',
             'occurred_at' => gmdate('c'),
             'line_items'  => array_map(
-                fn($li) => ['id' => $li['id'], 'quantity' => $li['quantity']['total']],
+                function ($li) {
+                    return ['id' => $li['id'], 'quantity' => $li['quantity']['total']];
+                },
                 $entity['line_items']
             ),
         ];
@@ -352,7 +372,9 @@ class Orders
             ],
             $params
         );
-        $list = implode(' ', array_map(fn($c) => "\"$c\"", $components));
+        $list = implode(' ', array_map(function ($c) {
+            return "\"$c\"";
+        }, $components));
 
         $headers = [
             'Content-Type: application/json',

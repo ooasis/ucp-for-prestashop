@@ -9,7 +9,7 @@
 /**
  * RFC 9421 HTTP Message Signatures for UCP.
  *
- * Plain PHP 8.1+, no dependencies beyond ext-openssl and ext-sodium.
+ * Plain PHP 7.2.5+, no dependencies beyond ext-openssl and ext-sodium.
  * Implements the UCP profile of RFC 9421 per spec/docs/specification/signatures.md:
  *   - ES256 (baseline, MUST verify) / ES384 / EdDSA (Ed25519)
  *   - ECDSA signatures in fixed-width raw r||s (P1363), NOT DER
@@ -163,15 +163,17 @@ class Rfc9421
     /**
      * Export the public half of an openssl EC key as a JWK.
      *
-     * @param \OpenSSLAsymmetricKey $key
+     * @param resource|\OpenSSLAsymmetricKey $key
      * @param string $kid
      * @return array
      */
-    public static function ecPemToJwk(\OpenSSLAsymmetricKey $key, string $kid): array
+    public static function ecPemToJwk($key, string $kid): array
     {
         $d = openssl_pkey_get_details($key);
-        $crv = ['prime256v1' => 'P-256', 'secp384r1' => 'P-384'][$d['ec']['curve_name']]
-            ?? throw new SignatureException('algorithm_unsupported', $d['ec']['curve_name']);
+        $crv = ['prime256v1' => 'P-256', 'secp384r1' => 'P-384'][$d['ec']['curve_name']] ?? null;
+        if ($crv === null) {
+            throw new SignatureException('algorithm_unsupported', $d['ec']['curve_name']);
+        }
         return [
             'kid' => $kid, 'kty' => 'EC', 'crv' => $crv,
             'x' => self::b64urlEncode($d['ec']['x']), 'y' => self::b64urlEncode($d['ec']['y']),
@@ -195,11 +197,14 @@ class Rfc9421
         if (isset($jwk['key_ops']) && !in_array('verify', $jwk['key_ops'], true)) {
             return false;
         }
-        return match ($jwk['kty'] ?? '') {
-            'EC' => isset(self::EC_CURVES[$jwk['crv'] ?? '']) && isset($jwk['x'], $jwk['y']),
-            'OKP' => ($jwk['crv'] ?? '') === 'Ed25519' && isset($jwk['x']),
-            default => false,
-        };
+        switch ($jwk['kty'] ?? '') {
+            case 'EC':
+                return isset(self::EC_CURVES[$jwk['crv'] ?? '']) && isset($jwk['x'], $jwk['y']);
+            case 'OKP':
+                return ($jwk['crv'] ?? '') === 'Ed25519' && isset($jwk['x']);
+            default:
+                return false;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -238,21 +243,36 @@ class Rfc9421
     {
         $lines = [];
         foreach ($components as $c) {
-            $value = match ($c) {
-                '@method' => strtoupper($ctx['method']),
-                '@authority' => strtolower($ctx['authority']),
-                '@path' => $ctx['path'],
-                '@query' => '?' . ($ctx['query'] ?? ''),
-                '@status' => (string)$ctx['status'],
-                default => str_starts_with($c, '@')
-                    ? throw new SignatureException('signature_invalid', "unsupported derived component $c")
-                    : trim(
-                        $headers[$c] ?? throw new SignatureException('signature_invalid', "missing signed header $c")
-                    ),
-            };
+            switch ($c) {
+                case '@method':
+                    $value = strtoupper($ctx['method']);
+                    break;
+                case '@authority':
+                    $value = strtolower($ctx['authority']);
+                    break;
+                case '@path':
+                    $value = $ctx['path'];
+                    break;
+                case '@query':
+                    $value = '?' . ($ctx['query'] ?? '');
+                    break;
+                case '@status':
+                    $value = (string) $ctx['status'];
+                    break;
+                default:
+                    if (strpos($c, '@') === 0) {
+                        throw new SignatureException('signature_invalid', "unsupported derived component $c");
+                    }
+                    if (!isset($headers[$c])) {
+                        throw new SignatureException('signature_invalid', "missing signed header $c");
+                    }
+                    $value = trim($headers[$c]);
+            }
             $lines[] = "\"$c\": $value";
         }
-        $list = implode(' ', array_map(fn($c) => "\"$c\"", $components));
+        $list = implode(' ', array_map(function ($c) {
+            return "\"$c\"";
+        }, $components));
         $lines[] = "\"@signature-params\": ($list)$params";
         return implode("\n", $lines);
     }
@@ -386,7 +406,9 @@ class Rfc9421
 
         $params = ';keyid="' . $kid . '"'; // default UCP: no created/expires/alg (spec)
         $base = self::signatureBase($components, $req, $headers, $params);
-        $list = implode(' ', array_map(fn($c) => "\"$c\"", $components));
+        $list = implode(' ', array_map(function ($c) {
+            return "\"$c\"";
+        }, $components));
         $out['Signature-Input'] = "sig1=($list)$params";
         $out['Signature'] = 'sig1=:' . base64_encode(self::signBase($base, $privateKey)) . ':';
         return $out;
@@ -419,7 +441,9 @@ class Rfc9421
         }
         $params = ';created=' . time() . ';keyid="' . $kid . '"';
         $base = self::signatureBase($components, ['status' => $status], $headers, $params);
-        $list = implode(' ', array_map(fn($c) => "\"$c\"", $components));
+        $list = implode(' ', array_map(function ($c) {
+            return "\"$c\"";
+        }, $components));
         $out['Signature-Input'] = "sig1=($list)$params";
         $out['Signature'] = 'sig1=:' . base64_encode(self::signBase($base, $privateKey)) . ':';
         return $out;
