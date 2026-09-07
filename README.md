@@ -1,4 +1,4 @@
-# UCP/ACP Agent for PrestaShop
+# UCP Agent for PrestaShop
 
 Universal Commerce Protocol (UCP, v2026-04-08) merchant implementation for PrestaShop 8 and 9.
 Lets AI shopping agents discover your store, build a checkout, pay, and receive order updates,
