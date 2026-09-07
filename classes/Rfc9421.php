@@ -3,8 +3,8 @@
  * UCP/ACP Agent for PrestaShop
  *
  * @author    ooasis
- * @copyright 2026 ooasis
- * @license   https://opensource.org/licenses/MIT MIT License
+ * @copyright 2026 Hang Sun (https://github.com/ooasis)
+ * @license   https://polyformproject.org/licenses/shield/1.0.0 PolyForm Shield 1.0.0
  */
 /**
  * RFC 9421 HTTP Message Signatures for UCP.
